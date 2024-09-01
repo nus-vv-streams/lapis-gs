@@ -24,9 +24,6 @@
     <a href="https://yuang-ian.github.io/lapisgs/" target='_blank'>
         <img src="https://img.shields.io/badge/Project-%F0%9F%94%97-yellow">
     </a>
-    <a href="" target='_blank'>
-        <img src="https://visitor-badge.laobi.icu/badge?page_id=Xiangxu-0103.SuperFlow&left_color=gray&right_color=lightgreen">
-    </a>
     <a href=""><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fnus-vv-streams%2Flapis-gs&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=Visitors&edge_flat=false"/></a>
 </div>
 
