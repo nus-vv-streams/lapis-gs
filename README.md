@@ -27,6 +27,8 @@
     <a href=""><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fnus-vv-streams%2Flapis-gs&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=Visitors&edge_flat=false"/></a>
 </div>
 
+## About 
+
 <br>
 <p align="center">
   <a href="">
@@ -35,11 +37,13 @@
 </p>
 
 <p align="center">
-    We introduce <strong><i>LapisGS</i></strong>, a layered progressive 3D Gaussian Splatting (3DGS), for adaptive streaming and view-adaptive rendering.
+    We introduce <strong><i>LapisGS</i></strong>, a layered progressive 3D Gaussian Splatting (3DGS), for adaptive streaming and view-adaptive rendering. Our approach can effectively balance visual fidelity with the compactness of the model, with up to 50.71% improvement in SSIM, 286.53% improvement in LPIPS, and 318.41% reduction in model size, and shows its potential for bandwidth-adapted 3D streaming and rendering applications.
 </p>
 <br>
 
-Implementation will be provided.
+## Implementation
+
+The code will be provided.
 
 ## Citation
 
