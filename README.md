@@ -35,7 +35,7 @@
 </p>
 
 <p align="center">
-    We introduce <strong><i>LapisGS</i></strong>, a layered progressive 3D Gaussian Splatting (3DGS), for adaptive streaming and view-adaptive rendering. Our approach can effectively balance visual fidelity with the compactness of the model, with up to 50.71% improvement in SSIM, 286.53% improvement in LPIPS, and 318.41% reduction in model size, and shows its potential for bandwidth-adapted 3D streaming and rendering applications.
+    We introduce <strong><i>LapisGS</i></strong>, a layered progressive 3DGS, for adaptive streaming and view-adaptive rendering.
 </p>
 <br>
 
