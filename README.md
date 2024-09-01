@@ -1,9 +1,9 @@
 
 <div align="center">
-    <h2>
+    <h1>
         <img src="/images/title.png" alt="icon" style="height: 1em; vertical-align: middle; margin-right: 0.1em;">
         <strong>LapisGS: </strong>Layered Progressive 3D Gaussian Splatting for Adaptive Streaming
-    </h2>
+    </h1>
 </div>
 
 <div align="center">
