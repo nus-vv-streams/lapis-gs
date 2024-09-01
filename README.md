@@ -11,10 +11,9 @@
     <a href="https://scholar.google.com/citations?user=PbKu-PsAAAAJ&hl=en">Simone Gasparini</a><sup>2</sup>,
     <a href="https://scholar.google.de/citations?user=H8QDhhAAAAAJ&hl=en">Géraldine Morin</a><sup>2</sup>,
     <a href="https://www.comp.nus.edu.sg/~ooiwt/">Wei Tsang Ooi</a><sup>1</sup>,
-    <br>
     <sup>1</sup>National University of Singapore,
     <sup>2</sup>IRIT - University of Toulouse
-</div>
+</div><br>
 
 
 <div align="center">
