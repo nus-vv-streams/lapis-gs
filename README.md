@@ -15,7 +15,7 @@
         <sup>1</sup>National University of Singapore,
         <sup>2</sup>IRIT - University of Toulouse
     </p>
-</div><br>
+</div>
 
 
 <div align="center">
@@ -26,10 +26,10 @@
         <img src="https://img.shields.io/badge/Project-%F0%9F%94%97-yellow">
     </a>
     <a href=""><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fnus-vv-streams%2Flapis-gs&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=Visitors&edge_flat=false"/></a>
-</div>
+</div> <br> <br>
 
 
-<br>
+
 <p align="center">
   <a href="">
     <img src="/images/teaser.png" alt="teaser" width="80%">
