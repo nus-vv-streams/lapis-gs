@@ -2,11 +2,10 @@ Official repository for "[LapisGS: Layered Progressive 3D Gaussian Splatting for
 
 
 <div align="center">
-    <h1>
+    <h2>
         <img src="/images/title.png" alt="icon" style="height: 1em; vertical-align: middle; margin-right: 0.1em;">
-        <strong>LapisGS: </strong>
-    </h1>
-    <h2>Layered Progressive 3D Gaussian Splatting for Adaptive Streaming</h2>
+        <strong>LapisGS: </strong>Layered Progressive 3D Gaussian Splatting for Adaptive Streaming
+    </h2>
 </div>
 
 <div align="center">
