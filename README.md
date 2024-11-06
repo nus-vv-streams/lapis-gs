@@ -15,6 +15,9 @@
         <sup>1</sup>National University of Singapore,
         <sup>2</sup>IRIT - University of Toulouse
     </p>
+    <p>
+    International Conference on 3D Vision (3DV), 2025
+    </p>
 </div>
 
 
@@ -43,16 +46,16 @@
 
 ## Implementation
 
-The code will be provided.
+Our paper is accpeted by 3DV 2025. The authors are busy with other submissions in Nov, and will provide the code in around Dec. Stay tuned!
 
 ## Citation
 
 If you find our code or paper useful, please cite
 
 ```latex
-@article{Shi2024LapisGS,
+@inproceedings{Shi2024LapisGS,
   author    = {Shi, Yuang and Gasparini, Simone and Morin, Géraldine and Ooi, Wei Tsang},
   title     = {LapisGS: Layered Progressive 3D Gaussian Splatting for Adaptive Streaming},
-  journal   = {arXiv preprint arXiv:2408.14823},
-  year      = {2024},
+  booktitle = {3DV},
+  year      = {2025},
 ```
