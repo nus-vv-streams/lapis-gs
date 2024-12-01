@@ -40,7 +40,13 @@
 </p>
 
 <p align="center">
-    We introduce <strong><i>LapisGS</i></strong>, a layered progressive 3DGS, for adaptive streaming and view-adaptive rendering.
+    We introduce <strong><i>LapisGS</i></strong>*, a layered progressive 3DGS, for adaptive streaming and view-adaptive rendering. 
+</p>
+
+<p align="center">
+    <span class="small">
+        *<i>Lapis</i> means ”layer” in Malay, the national language of Singapore --- the host of 3DV'25. The logo in the title depicts <a href "https://en.wikipedia.org/wiki/Kue_lapis">kuih lapis</a>, or ”layered cake”, a local delight in Singapore and neighboring countries. The authors are glad to serve kuih lapis at the conference to share the joy of the layered approach 🥳.
+    </span>
 </p>
 <br>
 
