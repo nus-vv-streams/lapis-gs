@@ -7,13 +7,13 @@
 </div>
 
 <div align="center">
-    <a href="yuang-ian.github.io">Yuang Shi</a><sup>1</sup>,
-    <a href="https://scholar.google.com/citations?user=PbKu-PsAAAAJ&hl=en">Simone Gasparini</a><sup>2</sup>,
-    <a href="https://scholar.google.de/citations?user=H8QDhhAAAAAJ&hl=en">Géraldine Morin</a><sup>2</sup>,
-    <a href="https://www.comp.nus.edu.sg/~ooiwt/">Wei Tsang Ooi</a><sup>1</sup>,
+    <a href="https://yuang-ian.github.io" target='_blank'>Yuang Shi</a><sup>1</sup>,
+    <a href="https://scholar.google.com/citations?user=PbKu-PsAAAAJ&hl=en" target='_blank'>Simone Gasparini</a><sup>2</sup>,
+    <a href="https://scholar.google.de/citations?user=H8QDhhAAAAAJ&hl=en" target='_blank'>Géraldine Morin</a><sup>2</sup>,
+    <a href="https://www.comp.nus.edu.sg/~ooiwt/" target='_blank'>Wei Tsang Ooi</a><sup>1</sup>,
     <p>
         <sup>1</sup>National University of Singapore,
-        <sup>2</sup>IRIT - University of Toulouse
+        <sup>2</sup>IRIT - Université de Toulouse
     </p>
     <p>
     International Conference on 3D Vision (3DV), 2025
@@ -45,7 +45,7 @@
 
 <p align="center">
     <span class="small">
-        *<i>Lapis</i> means ”layer” in Malay, the national language of Singapore --- the host of 3DV'25. The logo in the title depicts <a href "https://en.wikipedia.org/wiki/Kue_lapis">kuih lapis</a>, or ”layered cake”, a local delight in Singapore and neighboring countries. The authors are glad to serve kuih lapis at the conference to share the joy of the layered approach 🥳.
+        *<i>Lapis</i> means ”layer” in Malay, the national language of Singapore --- the host of 3DV'25. The logo in the title depicts <a href "https://en.wikipedia.org/wiki/Kue_lapis">kuih lapis</a>, or ”layered cake”, a local delight in Singapore and neighboring countries. The authors are glad to serve kuih lapis to our friends at the conference to share the joy of the layered approach 🥳.
     </span>
 </p>
 <br>
