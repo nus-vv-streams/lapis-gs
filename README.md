@@ -174,6 +174,7 @@ project
     │           └── playroom_res8
 ```
 
+**How to extract the enhanced layer?**
 Note that \<scene\>_res1 is the highest resolution, and \<scene\>_res8 is the lowest resolution. The model is trained from the lowest resolution to the highest resolution. The model stored in the higher resolution folder contains not only the higher layer but also the lower layer(s).
 
 We construct the merged GS with a specially designed order: the lower layers come first as the foundation base, and the enhanced layer is stiched behind the foundation base, as shown in the figure below. As the foundation base is frozen to optimization and adaptive control, one can easily extract the enhanced layer by performing the operation like GS[size_of_foundation_layers:].
@@ -199,7 +200,7 @@ python metrics.py -m <path to trained model> # Compute error metrics on renderin
 If you find our code or paper useful, please cite
 
 ```latex
-@inproceedings{Shi2024LapisGS,
+@inproceedings{shi2024lapisgs,
   author    = {Shi, Yuang and Gasparini, Simone and Morin, Géraldine and Ooi, Wei Tsang},
   title     = {{LapisGS}: Layered Progressive {3D Gaussian} Splatting for Adaptive Streaming},
   publisher = {{IEEE}},
