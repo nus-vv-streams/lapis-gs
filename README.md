@@ -174,7 +174,9 @@ project
     │           └── playroom_res8
 ```
 
-Note that \<scene\>_res1 is the highest resolution, and \<scene\>_res8 is the lowest resolution. The model is trained from the lowest resolution to the highest resolution. The model stored in the higher resolution folder contains not only the higher layer but also the lower layer(s), as shown in the figure below.
+Note that \<scene\>_res1 is the highest resolution, and \<scene\>_res8 is the lowest resolution. The model is trained from the lowest resolution to the highest resolution. The model stored in the higher resolution folder contains not only the higher layer but also the lower layer(s).
+
+We construct the merged GS with a specially designed order: the lower layers come first as the foundation base, and the enhanced layer is stiched behind the foundation base, as shown in the figure below. As the foundation base is frozen to optimization and adaptive control, one can easily extract the enhanced layer by performing the operation like GS[size_of_foundation_layers:].
 
 <p align="center">
     <a href="">
@@ -199,8 +201,9 @@ If you find our code or paper useful, please cite
 ```latex
 @inproceedings{Shi2024LapisGS,
   author    = {Shi, Yuang and Gasparini, Simone and Morin, Géraldine and Ooi, Wei Tsang},
-  title     = {LapisGS: Layered Progressive 3D Gaussian Splatting for Adaptive Streaming},
+  title     = {{LapisGS}: Layered Progressive {3D Gaussian} Splatting for Adaptive Streaming},
   publisher = {{IEEE}},
   booktitle = {International Conference on 3D Vision, 3DV 2025, Singapore, March 25-28, 2025},
   year      = {2025},
+  }
 ```
