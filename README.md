@@ -209,12 +209,12 @@ If you find our code or paper useful, please cite
   }
 ```
 
-Based on our LapisGS, we built the first ever dynamic 3DGS streaming system, which achieves superior performance in both live streaming and on-demand streaming. Our work is to be appeared in the MMSys'25 in March 2025. Please stay tuned for the paper and implementation.
+Based on our LapisGS, we built the first ever dynamic 3DGS streaming system, which achieves superior performance in both live streaming and on-demand streaming. Our work is to be appeared in the MMSys'25 in March 2025. Access to the [Preprint Paper](https://drive.google.com/file/d/1iDz1ExOd1LrPhA7fv4DbLUbzn-Jioihn/view?usp=share_link).
 
 ```latex
-@inproceedings{sun2025tsla,
+@inproceedings{sun2025lts,
   author    = {Sun, Yuan-Chun and Shi, Yuang and Lee, Cheng-Tse and Zhu, Mufeng and Ooi, Wei Tsang and Liu, Yao and Huang, Chun-Ying and Hsu, Cheng-Hsin},
-  title     = {{TSLA}: A {DASH} Streaming System for Dynamic Multi-Layer {3D Gaussian} Splatting Scenes},
+  title     = {{LTS}: A {DASH} Streaming System for Dynamic Multi-Layer {3D Gaussian} Splatting Scenes},
   publisher = {{ACM}},
   booktitle = {The 16th ACM Multimedia Systems Conference, MMSys 2025, 2025},
   year      = {2025},
