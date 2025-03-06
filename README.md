@@ -174,7 +174,8 @@ project
     │           └── playroom_res8
 ```
 
-**How to extract the enhanced layer?**
+### How to extract the enhanced layer
+
 Note that \<scene\>_res1 is the highest resolution, and \<scene\>_res8 is the lowest resolution. The model is trained from the lowest resolution to the highest resolution. The model stored in the higher resolution folder contains not only the higher layer but also the lower layer(s).
 
 We construct the merged GS with a specially designed order: the lower layers come first as the foundation base, and the enhanced layer is stiched behind the foundation base, as shown in the figure below. As the foundation base is frozen to optimization and adaptive control, one can easily extract the enhanced layer by performing the operation like GS[size_of_foundation_layers:].
@@ -185,11 +186,11 @@ We construct the merged GS with a specially designed order: the lower layers com
     </a>
 </p>
 
-**CUDA out-of-memory error.**
+### CUDA out-of-memory error
 
-Through experiments, we found that the default loss function is not sensitive to low-resolution images, making optimization and desification failed. It is because in the default loss function, L1 loss is attached much more importance (0.8), but L1 loss is not sensitive to finer details, blurriness, or low-resolution artifacts. Therefore, the loss, computed from the default loss function, would be small at low layers, disabling the parameter update and adaptive control for the low-layer Gaussian splats.
+Through experiments, we found that the default loss function is not sensitive to low-resolution images, making optimization and desification failed. It is because in the default loss function, L1 loss is attached much more importance (0.8), but L1 loss is not sensitive to finer details, blurriness, or low-resolution artifacts. Therefore, the loss, computed from the default loss function, would be small at low layers, disabling the parameter update and adaptive control for the low-layer Gaussian splats. Therefore, we set lambda_dssim to 0.8 to emphasize the structural similarity loss, which is more sensitive to low-resolution artifacts and then causes much heavier desification, finally producing bigger 3DGS model. 
 
-Therefore, we set lambda_dssim to 0.8 to emphasize the structural similarity loss, which is more sensitive to low-resolution artifacts and then causes much heavier desification, finally producing bigger 3DGS model. To reduce the model size, you may try to 1) lower down the lambda_dssim or 2) increase the densification threshold. Also, generally speaking,it is not necessary to make it SSIM-sensitive for complex scenes.
+To reduce the model size, you may try to 1) lower down the lambda_dssim, or 2) increase the densification threshold. Also, generally speaking, it is not necessary to make it SSIM-sensitive for complex scenes. For example, we note that training LapisGS for complex scene *playroom* with default lambda_dssim 0.2 can still produce reasonable layered structure, while it fails for simple object *lego*.
 
 
 
