@@ -185,6 +185,13 @@ We construct the merged GS with a specially designed order: the lower layers com
     </a>
 </p>
 
+**CUDA out-of-memory error.**
+
+Through experiments, we found that the default loss function is not sensitive to low-resolution images, making optimization and desification failed. It is because in the default loss function, L1 loss is attached much more importance (0.8), but L1 loss is not sensitive to finer details, blurriness, or low-resolution artifacts. Therefore, the loss, computed from the default loss function, would be small at low layers, disabling the parameter update and adaptive control for the low-layer Gaussian splats.
+
+Therefore, we set lambda_dssim to 0.8 to emphasize the structural similarity loss, which is more sensitive to low-resolution artifacts and then causes much heavier desification, finally producing bigger 3DGS model. To reduce the model size, you may try to 1) lower down the lambda_dssim or 2) increase the densification threshold. Also, generally speaking,it is not necessary to make it SSIM-sensitive for complex scenes.
+
+
 
 ## Evaluation
 
