@@ -28,7 +28,6 @@
     <a href="https://yuang-ian.github.io/lapisgs/" target='_blank'>
         <img src="https://img.shields.io/badge/Project-%F0%9F%94%97-yellow">
     </a>
-    <a href=""><img src="https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fnus-vv-streams%2Flapis-gs&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=Visitors&edge_flat=false"/></a>
 </div> <br> <br>
 
 
@@ -208,23 +207,45 @@ python metrics.py -m <path to trained model> # Compute error metrics on renderin
 If you find our code or paper useful, please cite
 
 ```latex
-@inproceedings{shi2024lapisgs,
-  author    = {Shi, Yuang and Gasparini, Simone and Morin, Géraldine and Ooi, Wei Tsang},
-  title     = {{LapisGS}: Layered Progressive {3D Gaussian} Splatting for Adaptive Streaming},
-  publisher = {{IEEE}},
-  booktitle = {International Conference on 3D Vision, 3DV 2025, Singapore, March 25-28, 2025},
-  year      = {2025},
-  }
+@inproceedings{shi2025lapisgs,
+  author        = {Shi, Yuang and 
+                   Morin, G{\'e}raldine and 
+                   Gasparini, Simone and 
+                   Ooi, Wei Tsang},
+  title         = {{LapisGS}: Layered Progressive {3D} {Gaussian} Splatting for Adaptive Streaming},
+  booktitle     = {Proceedings of the 2025 International Conference on 3D Vision (3DV)},
+  pages         = {991--1000},
+  year          = {2025},
+  organization  = {IEEE}
+}
 ```
 
-Based on our LapisGS, we built the first ever dynamic 3DGS streaming system, which achieves superior performance in both live streaming and on-demand streaming. Our work is to be appeared in the MMSys'25 in March 2025. Access to the [Preprint Paper](https://drive.google.com/file/d/1iDz1ExOd1LrPhA7fv4DbLUbzn-Jioihn/view?usp=share_link).
+## The First Streaming System for Dynamic 3DGS
+
+Based on our LapisGS, we built the first ever dynamic 3DGS streaming system named LTS, which achieves superior performance in both live streaming and on-demand streaming. Our work "LTS: A DASH Streaming System for Dynamic Multi-Layer 3D Gaussian Splatting Scenes" won the 🏆**Best Paper Award**🏆 at ACM MMSys'25 in March 2025. Access to the [Paper](https://drive.google.com/file/d/1iDz1ExOd1LrPhA7fv4DbLUbzn-Jioihn/view?usp=share_link). 
+
+Related to LapisGS, I extended it to support dynamic scenes, and released the [Code](https://github.com/nus-vv-streams/dynamic-lapis-gs/) of Dynamic-LapisGS.
+
+If you find our code or paper useful, please cite
 
 ```latex
 @inproceedings{sun2025lts,
-  author    = {Sun, Yuan-Chun and Shi, Yuang and Lee, Cheng-Tse and Zhu, Mufeng and Ooi, Wei Tsang and Liu, Yao and Huang, Chun-Ying and Hsu, Cheng-Hsin},
-  title     = {{LTS}: A {DASH} Streaming System for Dynamic Multi-Layer {3D Gaussian} Splatting Scenes},
-  publisher = {{ACM}},
-  booktitle = {The 16th ACM Multimedia Systems Conference, MMSys 2025, 2025},
-  year      = {2025},
-  }
+  author       = {Yuan{-}Chun Sun and
+                  Yuang Shi and
+                  Cheng{-}Tse Lee and
+                  Mufeng Zhu and
+                  Wei Tsang Ooi and
+                  Yao Liu and
+                  Chun{-}Ying Huang and
+                  Cheng{-}Hsin Hsu},
+  title        = {{LTS:} {A} {DASH} Streaming System for Dynamic Multi-Layer {3D} {Gaussian}
+                  Splatting Scenes},
+  booktitle    = {Proceedings of the 16th {ACM} Multimedia Systems Conference, MMSys
+                  2025, Stellenbosch, South Africa, 31 March 2025 - 4 April 2025},
+  pages        = {136--147},
+  publisher    = {{ACM}},
+  year         = {2025},
+  url          = {https://doi.org/10.1145/3712676.3714445},
+  doi          = {10.1145/3712676.3714445},
+}
 ```
