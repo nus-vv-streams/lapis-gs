@@ -44,10 +44,17 @@
 
 <p align="center">
     <span class="small">
-        *<i>Lapis</i> means ”layer” in Malay, the national language of Singapore --- the host of 3DV'25. The logo in the title depicts <a href="https://en.wikipedia.org/wiki/Kue_lapis">kuih lapis</a>, or ”layered cake”, a local delight in Singapore and neighboring countries. The authors are glad to serve kuih lapis to our friends at the conference to share the joy of the layered approach 🥳.
+        *<i>Lapis</i> means ”layer” in Malay, the national language of Singapore --- the host of 3DV'25. The logo in the title depicts <a href="https://en.wikipedia.org/wiki/Kue_lapis">kuih lapis</a>, or ”layered cake”, a local delight in Singapore and neighboring countries. The authors are glad to serve kuih lapis at the conference 🍰.
     </span>
 </p>
 <br>
+
+
+## News
+
+- 🏆 **2025/09**: **Best Paper Award** at ACM SIGCOMM EMS'25. Based on LapisGS, we built a system called NETSPLAT ([Short Paper](https://dl.acm.org/doi/10.1145/3746441.3748225)) that leverages data plane programmability to provide network assistance for 3DGS streaming. It is WiP, but we won the Best Paper Award at ACM SIGCOMM EMS'25...Again!
+- 🏆 **2025/04**: **Best Paper Award** at ACM MMSys'25. We extend LapisGS to dynamic scenes (Dynamic-LapisGS, Check the [Code](https://github.com/nus-vv-streams/dynamic-lapis-gs/)). Based on Dynamic-LapisGS, we built the first ever dynamic 3DGS streaming system named LTS ([Paper](https://doi.org/10.1145/3712676.3714445)), and won the Best Paper Award at ACM MMSys'25!
+
 
 ## Setup
 
