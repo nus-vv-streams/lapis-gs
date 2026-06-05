@@ -15,9 +15,14 @@
 #   4. builds layers coarse->fine: layer k uses bucket k as its trainable splats
 #      on top of a frozen cumulative base, fine-tuned at resolution 2^(n_layers-k).
 #
-# The per-layer regime is LapisGS's (frozen base with dynamic ancestor opacity)
-# but with densification disabled, so layer k has exactly k*layer_size splats and
-# the coarse prefix stays nested for streaming.
+# The per-layer regime is LapisGS's: ancestors are frozen except for their
+# opacity (--dynamic_opacity), so layers 1..k-1 keep their positions/colors/
+# scales/rotations but their opacities adapt as layer k is added. Densification
+# is disabled (--no_densify) so each layer ends with a fixed splat count
+# (layer_size in L3GS mode; the equal-split band size otherwise). Note that
+# because ancestor opacities adapt across levels, the saved per-level
+# checkpoints do NOT form a byte-identical nested prefix; pass
+# --no_dynamic_opacity for strict L3GS-style full-freeze if you need that.
 #
 
 import os

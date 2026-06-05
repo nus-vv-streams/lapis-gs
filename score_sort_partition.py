@@ -1,14 +1,18 @@
 #
 # Top-down LOD construction, step 3 (scoring + partition).
 #
-# Loads a PRUNED 3DGS model (output of prune_finetune.py, with exactly
-# n_layers*layer_size Gaussians), scores every Gaussian by L3GS importance
-# (sum of blending opacity over all training views, volume-weighted), sorts the
-# model so the most important Gaussians come first, and partitions it into
-# n_layers per-layer bucket PLYs of exactly layer_size each.
+# Loads a trained 3DGS model, scores every Gaussian by L3GS importance (sum of
+# blending opacity over all training views, volume-weighted), sorts the model
+# so the most important Gaussians come first, and partitions it into n_layers
+# per-layer bucket PLYs (layer_1 is always the most important).
 #
-# If the input model's splat count does NOT equal n_layers*layer_size, this
-# script warns and falls back to truncating/padding the bands accordingly.
+# Two partition modes, selected by whether --layer_size is set:
+#   * L3GS mode (--layer_size d): expects M == n_layers*d (the output of
+#     prune_finetune.py). Produces N bands of exactly d splats each. Warns if
+#     M differs from the expected count.
+#   * Equal-split mode (--layer_size unset): operates on the raw step-1 full
+#     model (no prune). Splits M into N near-equal bands summing to M; sizes
+#     are [ceil(M/N)] * (M%N) + [floor(M/N)] * (N - M%N), differing by at most 1.
 #
 # Outputs under --out_dir:
 #   sorted_full.ply        the full model reordered by descending importance
