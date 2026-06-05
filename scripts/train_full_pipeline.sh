@@ -6,12 +6,12 @@
 #SBATCH --gres=gpu:1
 
 # Top-down LapisGS experiment driver.
-# Invokes train_full_pipeline_topdown.py per (dataset, scene).
+# Invokes train_full_pipeline_topdown.py per (dataset, scene), then renders and
+# computes metrics for each of the N produced layers (L1_res8 .. LN_res1).
 #
 # Every variable below can be overridden via the environment, e.g.:
 #   DATASET=nerf_synthetic SCENES="lego chair" LAYER_SIZE=45000 \
 #       sbatch scripts/train_full_pipeline.sh
-# When unset, the defaults baked into the script are used.
 
 # ---- paths / output naming ----
 MODEL_BASE="${MODEL_BASE:-/home/e/e0686126/gs/model}"
@@ -33,13 +33,16 @@ LAYER_SIZE="${LAYER_SIZE:-}"
 DYNAMIC_OPACITY="${DYNAMIC_OPACITY:-yes}"
 
 # ---- which dataset + which scenes to run ----
-# One dataset per invocation. To run multiple datasets, submit multiple jobs.
-# SCENES is a space-separated list (gets word-split into an array).
+# One dataset per invocation. SCENES is a space-separated list.
 DATASET="${DATASET:-db}"
 SCENES="${SCENES:-playroom drjohnson}"
 
-# ---- pipeline call ----
-# Per-dataset extras.
+# ---- post-training evaluation toggles ----
+RUN_TRAIN="${RUN_TRAIN:-yes}"
+RUN_RENDER="${RUN_RENDER:-yes}"
+RUN_METRICS="${RUN_METRICS:-yes}"
+
+# ---- assemble pipeline extras ----
 extra_args=()
 if [[ "${DATASET}" == "nerf_synthetic" ]]; then
     extra_args+=("-w")   # white background for NeRF synthetic
@@ -52,15 +55,43 @@ if [[ "${DYNAMIC_OPACITY}" == "no" ]]; then
 fi
 
 for scene in ${SCENES}; do
+    echo "=========================================="
     echo "=== dataset=${DATASET}, scene=${scene} ==="
+    echo "=========================================="
 
-    srun python -u ./train_full_pipeline_topdown.py \
-        --model_base "${MODEL_BASE}" \
-        --dataset_base "${DATASET_BASE}" \
-        --dataset_name "${DATASET}" \
-        --scene "${scene}" \
-        --method "${METHOD}" \
-        --lambda_dssim "${LAMBDA_DSSIM}" \
-        --n_layers "${N_LAYERS}" \
-        "${extra_args[@]}"
+    if [[ "${RUN_TRAIN}" == "yes" ]]; then
+        srun python -u ./train_full_pipeline_topdown.py \
+            --model_base "${MODEL_BASE}" \
+            --dataset_base "${DATASET_BASE}" \
+            --dataset_name "${DATASET}" \
+            --scene "${scene}" \
+            --method "${METHOD}" \
+            --lambda_dssim "${LAMBDA_DSSIM}" \
+            --n_layers "${N_LAYERS}" \
+            "${extra_args[@]}"
+    else
+        echo "[skip] RUN_TRAIN=no — skipping training"
+    fi
+
+    # Render + metrics for each produced layer. Layer k trains at resolution
+    # 2^(N - k): k=1 -> coarsest (res8 for N=4), k=N -> res1.
+    if [[ "${RUN_RENDER}" == "yes" || "${RUN_METRICS}" == "yes" ]]; then
+        for ((k = 1; k <= N_LAYERS; k++)); do
+            res=$((2 ** (N_LAYERS - k)))
+            layer_dir="${MODEL_BASE}/${DATASET}/${scene}/${METHOD}/L${k}_res${res}"
+
+            if [[ ! -d "${layer_dir}" ]]; then
+                echo "[warn] layer dir not found, skipping eval: ${layer_dir}"
+                continue
+            fi
+
+            echo "--- eval L${k}_res${res} (${layer_dir}) ---"
+            if [[ "${RUN_RENDER}" == "yes" ]]; then
+                srun python -u ./render.py -m "${layer_dir}" --skip_train
+            fi
+            if [[ "${RUN_METRICS}" == "yes" ]]; then
+                srun python -u ./metrics.py -m "${layer_dir}"
+            fi
+        done
+    fi
 done
