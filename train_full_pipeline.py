@@ -36,14 +36,14 @@ if __name__ == "__main__":
         
         if method == "lapis":
             if resolution == 8:
-                train_command = f"python {train_bin} -s {source_dir} -m {model_dir} --data_device cuda --lambda_dssim 0.8"
+                train_command = f"python {train_bin} -s {source_dir} -m {model_dir} --data_device cuda --lambda_dssim 0.2"
             else:
-                train_command = f"python {train_bin} -s {source_dir} -m {model_dir} --data_device cuda --lambda_dssim 0.8 --dynamic_opacity --foundation_gs_path {model_base}/{dataset_name}/{scene}/{method}/{scene}_res{resolution_scales[idx-1]}/point_cloud/iteration_30000/point_cloud.ply"
+                train_command = f"python {train_bin} -s {source_dir} -m {model_dir} --data_device cuda --lambda_dssim 0.2 --dynamic_opacity --foundation_gs_path {model_base}/{dataset_name}/{scene}/{method}/{scene}_res{resolution_scales[idx-1]}/point_cloud/iteration_30000/point_cloud.ply"
         elif method == "freeze":
             if resolution == 8:
-                train_command = f"python {train_bin} -s {source_dir} -m {model_dir} --data_device cuda --lambda_dssim 0.8"
+                train_command = f"python {train_bin} -s {source_dir} -m {model_dir} --data_device cuda --lambda_dssim 0.2"
             else:
-                train_command = f"python {train_bin} -s {source_dir} -m {model_dir} --data_device cuda --lambda_dssim 0.8 --foundation_gs_path {model_base}/{dataset_name}/{scene}/{method}/{scene}_res{resolution_scales[idx-1]}/point_cloud/iteration_30000/point_cloud.ply"
+                train_command = f"python {train_bin} -s {source_dir} -m {model_dir} --data_device cuda --lambda_dssim 0.2 --foundation_gs_path {model_base}/{dataset_name}/{scene}/{method}/{scene}_res{resolution_scales[idx-1]}/point_cloud/iteration_30000/point_cloud.ply"
 
         # run the command lines
         os.system(train_command)
