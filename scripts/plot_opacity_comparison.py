@@ -64,7 +64,12 @@ def find_layer_dir(method_dir: Path, scene: str, k: int, res: int) -> Path | Non
 
 
 def read_metrics(layer_dir: Path) -> dict | None:
-    """Return {PSNR,SSIM,LPIPS} for the latest 'ours_*' in results.json, or None."""
+    """Return {PSNR,SSIM,LPIPS} for the latest 'ours_*' in results.json, or None.
+
+    metrics.py writes ``full_dict[scene_dir]`` to results.json, so the file
+    layout is ``{"ours_<iter>": {"SSIM": .., "PSNR": .., "LPIPS": ..}}`` —
+    method/iteration on the outer level, metrics directly underneath.
+    """
     results_path = layer_dir / "results.json"
     if not results_path.is_file():
         return None
@@ -72,16 +77,15 @@ def read_metrics(layer_dir: Path) -> dict | None:
         data = json.load(f)
     if not data:
         return None
-    # results.json: {"<model_path>": {"ours_<iter>": {"SSIM":..,"PSNR":..,"LPIPS":..}}}
-    outer = next(iter(data.values()))
-    if not outer:
-        return None
-    # Pick the highest iteration if multiple exist.
+
     def _iter_num(key: str) -> int:
         tail = key.rsplit("_", 1)[-1]
         return int(tail) if tail.isdigit() else 0
-    inner_key = max(outer.keys(), key=_iter_num)
-    inner = outer[inner_key]
+
+    iter_key = max(data.keys(), key=_iter_num)
+    inner = data[iter_key]
+    if not isinstance(inner, dict):
+        return None
     return {m: inner.get(m) for m in METRICS}
 
 
