@@ -4,6 +4,9 @@
 #SBATCH --time=2-00:00:00
 #SBATCH --mem-per-cpu=64G
 #SBATCH --gres=gpu:1
+#SBATCH --mail-type=END,FAIL
+#SBATCH --mail-user=yuangshi@comp.nus.edu.sg
+
 
 # Top-down LapisGS experiment driver.
 # Invokes train_full_pipeline_topdown.py per (dataset, scene), then renders and
