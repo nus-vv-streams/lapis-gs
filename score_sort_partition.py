@@ -110,5 +110,9 @@ if __name__ == "__main__":
     print("Scoring " + args.model_path)
 
     safe_state(args.quiet)
+    # get_combined_args drops cmdline keys whose value is None (it only merges
+    # in non-None overrides). --layer_size defaults to None for "equal-split
+    # mode", so when omitted it isn't present on the merged Namespace at all.
+    layer_size = getattr(args, "layer_size", None)
     score_sort_partition(model.extract(args), pipeline.extract(args),
-                         args.iteration, args.out_dir, args.n_layers, args.layer_size, args.v_pow)
+                         args.iteration, args.out_dir, args.n_layers, layer_size, args.v_pow)
