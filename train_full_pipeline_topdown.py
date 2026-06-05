@@ -4,9 +4,15 @@
 # Bottom-up LapisGS (train_full_pipeline.py) trains coarsest-first and *adds*
 # fresh Gaussians per finer level. This top-down variant instead:
 #   1. trains ONE full-detail model at res1 (normal 3DGS, densification on);
-#   2. scores every Gaussian by L3GS importance, sorts, and partitions the top
-#      n_layers*layer_size into buckets (layer_1 = most important);
-#   3. builds layers coarse->fine: layer k uses bucket k as its trainable splats
+#   2. (L3GS mode, only when --layer_size is set) prunes the model to exactly
+#      n_layers*layer_size splats via L3GS-style one-shot importance pruning +
+#      post-prune recovery fine-tune (see prune_finetune.py). Errors out if the
+#      full model has fewer splats than n_layers*layer_size;
+#   3. scores + sorts the model and partitions it: either into n_layers buckets
+#      of exactly layer_size (L3GS mode), or into n_layers near-equal bands
+#      summing to M (equal-split mode when --layer_size is unset). Layer_1 is
+#      always the most important;
+#   4. builds layers coarse->fine: layer k uses bucket k as its trainable splats
 #      on top of a frozen cumulative base, fine-tuned at resolution 2^(n_layers-k).
 #
 # The per-layer regime is LapisGS's (frozen base with dynamic ancestor opacity)
@@ -34,8 +40,15 @@ if __name__ == "__main__":
     parser.add_argument('--scene', type=str, required=True, help="Name of the scene")
     parser.add_argument('--method', type=str, default="lapis_topdown", help="Output method subfolder name")
     parser.add_argument('--n_layers', type=int, default=4, help="Number of LOD layers (data folders must exist for res 2^(n_layers-k))")
-    parser.add_argument('--layer_size', type=int, default=45000, help="Gaussians per layer (d)")
+    parser.add_argument('--layer_size', type=int, default=None,
+                        help="Gaussians per layer (d). If set (>0): L3GS mode — prune to "
+                             "n_layers*layer_size first, then partition into N bands of d. "
+                             "If unset: skip prune entirely and equal-split the full model into N bands.")
     parser.add_argument('--full_iterations', type=int, default=30000, help="Iterations for the full res1 pretrain")
+    parser.add_argument('--prune_iterations_total', type=int, default=35000, help="Total iterations for the prune+finetune stage (L3GS default: 35000)")
+    parser.add_argument('--prune_at', type=int, default=30001, help="Iteration at which the one-shot prune to target_num happens (L3GS default: 30001)")
+    parser.add_argument('--prune_type', type=str, default="v_important_score",
+                        choices=["important_score", "v_important_score", "max_v_important_score", "count", "opacity"])
     parser.add_argument('--layer_iterations', type=int, default=30000, help="Iterations for each layer fine-tune")
     parser.add_argument('--v_pow', type=float, default=0.1, help="Volume-weighting exponent in importance score")
     parser.add_argument('--lambda_dssim', type=float, default=0.2)
@@ -44,8 +57,11 @@ if __name__ == "__main__":
     args = parser.parse_args(sys.argv[1:])
 
     train_bin = "train.py"
+    prune_bin = "prune_finetune.py"
     score_bin = "score_sort_partition.py"
     N = args.n_layers
+    use_prune = args.layer_size is not None and args.layer_size > 0
+    target_num = (N * args.layer_size) if use_prune else None
     wbg = " -w" if args.white_background else ""
 
     method_dir = os.path.join(args.model_base, args.dataset_name, args.scene, args.method)
@@ -60,13 +76,37 @@ if __name__ == "__main__":
     run(f"python {train_bin} -s {source_for_res(1)} -m {full_dir} --data_device cuda "
         f"--lambda_dssim {args.lambda_dssim} --iterations {args.full_iterations}{wbg}")
 
-    # ---- Step 2: score + sort + partition into buckets ----
-    buckets_dir = os.path.join(method_dir, "buckets")
-    run(f"python {score_bin} -m {full_dir} --out_dir {buckets_dir} "
-        f"--n_layers {N} --layer_size {args.layer_size} --iteration {args.full_iterations} "
-        f"--v_pow {args.v_pow}{wbg}")
+    # ---- Step 2: prune to target_num + recover (only when --layer_size is set) ----
+    # L3GS mode: continue fine-tuning, then one-shot prune the bottom fraction by
+    # importance at --prune_at, then recover for the remaining iters. Produces a
+    # model with exactly target_num splats. Skipped entirely when --layer_size is
+    # unset (equal-split mode).
+    full_pretrain_ply = os.path.join(full_dir, "point_cloud",
+                                     f"iteration_{args.full_iterations}", "point_cloud.ply")
+    if use_prune:
+        pruned_dir = os.path.join(method_dir, f"{args.scene}_pruned_{target_num}")
+        os.makedirs(pruned_dir, exist_ok=True)
+        run(f"python {prune_bin} -s {source_for_res(1)} -m {pruned_dir} --data_device cuda "
+            f"--lambda_dssim {args.lambda_dssim} --iterations {args.prune_iterations_total} "
+            f"--start_pointcloud {full_pretrain_ply} --target_num {target_num} "
+            f"--prune_iterations {args.prune_at} --prune_type {args.prune_type} "
+            f"--v_pow {args.v_pow}{wbg}")
+        score_input_dir = pruned_dir
+        score_iteration = args.prune_iterations_total
+    else:
+        print("\n[pipeline] --layer_size not set: skipping prune+finetune, will equal-split the full model.")
+        score_input_dir = full_dir
+        score_iteration = args.full_iterations
 
-    # ---- Step 3: build layers coarse -> fine ----
+    # ---- Step 3: score + sort + partition into buckets ----
+    buckets_dir = os.path.join(method_dir, "buckets")
+    score_cmd = (f"python {score_bin} -m {score_input_dir} --out_dir {buckets_dir} "
+                 f"--n_layers {N} --iteration {score_iteration} --v_pow {args.v_pow}{wbg}")
+    if use_prune:
+        score_cmd += f" --layer_size {args.layer_size}"
+    run(score_cmd)
+
+    # ---- Step 4: build layers coarse -> fine ----
     prev_dir = None
     for k in range(1, N + 1):
         res = 2 ** (N - k)  # k=1 -> coarsest (largest downsample); k=N -> res1

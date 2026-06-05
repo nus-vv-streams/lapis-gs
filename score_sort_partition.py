@@ -1,10 +1,14 @@
 #
-# Top-down LOD construction, step 1 (scoring + partition).
+# Top-down LOD construction, step 3 (scoring + partition).
 #
-# Loads a fully-trained 3DGS model, scores every Gaussian by L3GS importance
+# Loads a PRUNED 3DGS model (output of prune_finetune.py, with exactly
+# n_layers*layer_size Gaussians), scores every Gaussian by L3GS importance
 # (sum of blending opacity over all training views, volume-weighted), sorts the
-# model so the most important Gaussians come first, and partitions the top
-# n_layers*layer_size Gaussians into per-layer bucket PLYs.
+# model so the most important Gaussians come first, and partitions it into
+# n_layers per-layer bucket PLYs of exactly layer_size each.
+#
+# If the input model's splat count does NOT equal n_layers*layer_size, this
+# script warns and falls back to truncating/padding the bands accordingly.
 #
 # Outputs under --out_dir:
 #   sorted_full.ply        the full model reordered by descending importance
@@ -49,16 +53,32 @@ def score_sort_partition(dataset, pipe, iteration, out_dir, n_layers, layer_size
         np.savez(os.path.join(out_dir, "imp_score.npz"), v_sorted.detach().cpu().numpy())
         np.save(os.path.join(out_dir, "sort_index.npy"), sort_index.detach().cpu().numpy())
 
-        # Partition the top n_layers*layer_size Gaussians into buckets.
         M = gaussians.get_xyz.shape[0]
-        total_keep = min(n_layers * layer_size, M)
-        if total_keep < n_layers * layer_size:
-            print(f"[score] WARNING: model has {M} Gaussians < n_layers*layer_size="
-                  f"{n_layers * layer_size}; last bucket(s) will be smaller or empty.")
 
-        for k in range(1, n_layers + 1):
-            start = (k - 1) * layer_size
-            end = min(k * layer_size, M)
+        # Two partition modes:
+        #   * layer_size set (>0): L3GS mode. Expect M == n_layers*layer_size
+        #     (prune_finetune.py guarantees this). Slice into N bands of exactly
+        #     layer_size.
+        #   * layer_size unset (None/<=0): equal-split mode. Don't prune; split
+        #     all M splats into N near-equal bands (sizes sum exactly to M).
+        if layer_size is None or layer_size <= 0:
+            base, rem = divmod(M, n_layers)
+            sizes = [base + 1] * rem + [base] * (n_layers - rem)
+            print(f"[score] equal-split mode: M={M}, n_layers={n_layers} -> band sizes {sizes}")
+            boundaries = []
+            cursor = 0
+            for s in sizes:
+                boundaries.append((cursor, cursor + s))
+                cursor += s
+        else:
+            expected = n_layers * layer_size
+            if M != expected:
+                print(f"[score] WARNING: model has {M} Gaussians, expected n_layers*layer_size="
+                      f"{expected}. This script normally runs on the output of prune_finetune.py.")
+            boundaries = [((k - 1) * layer_size, min(k * layer_size, M))
+                          for k in range(1, n_layers + 1)]
+
+        for k, (start, end) in enumerate(boundaries, start=1):
             if start >= M:
                 print(f"[score] layer {k}: no Gaussians left (start={start} >= M={M}); skipping.")
                 continue
@@ -77,7 +97,9 @@ if __name__ == "__main__":
     parser.add_argument("--iteration", default=-1, type=int, help="Which saved iteration of the full model to load.")
     parser.add_argument("--out_dir", required=True, type=str, help="Directory for sorted model + buckets.")
     parser.add_argument("--n_layers", default=4, type=int)
-    parser.add_argument("--layer_size", default=45000, type=int, help="Gaussians per layer bucket (d).")
+    parser.add_argument("--layer_size", default=None, type=int,
+                        help="Gaussians per layer bucket (d). If unset (or <=0), "
+                             "split the full model equally into n_layers bands.")
     parser.add_argument("--v_pow", default=0.1, type=float, help="Volume-weighting exponent in the importance score.")
     parser.add_argument("--quiet", action="store_true")
     args = get_combined_args(parser)

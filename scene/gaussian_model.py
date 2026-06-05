@@ -319,6 +319,17 @@ class GaussianModel:
         self.active_sh_degree = self.max_sh_degree
         self.max_radii2D = torch.zeros((self.get_xyz.shape[0]), device="cuda")
 
+    def prune_gaussians(self, percent, import_score):
+        # Remove the lowest-importance `percent` fraction of Gaussians (L3GS
+        # one-shot prune-to-target). With percent = 1 - target_num/current_num,
+        # the surviving count is ~target_num. Mirrors L3GS's gaussian_model.py
+        # prune_gaussians (cuts at the percent-th percentile of import_score).
+        sorted_tensor, _ = torch.sort(import_score, dim=0)
+        index_nth_percentile = int(percent * (sorted_tensor.shape[0] - 1))
+        value_nth_percentile = sorted_tensor[index_nth_percentile]
+        prune_mask = (import_score <= value_nth_percentile).squeeze()
+        self.prune_points(prune_mask)
+
     def sort_gaussians(self, import_score):
         # Reorder every per-Gaussian attribute by descending importance so that
         # the top-K most important Gaussians occupy the first K rows. This makes
