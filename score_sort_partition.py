@@ -4,7 +4,7 @@
 # Loads a trained 3DGS model, scores every Gaussian by L3GS importance (sum of
 # blending opacity over all training views, volume-weighted), sorts the model
 # so the most important Gaussians come first, and partitions it into n_layers
-# per-layer bucket PLYs (layer_1 is always the most important).
+# per-layer bucket PLYs (layer_0 is always the most important; 0-indexed).
 #
 # Two partition modes, selected by whether --layer_size is set:
 #   * L3GS mode (--layer_size d): expects M == n_layers*d (the output of
@@ -18,7 +18,7 @@
 #   sorted_full.ply        the full model reordered by descending importance
 #   imp_score.npz          sorted importance scores (1-D, length = #Gaussians)
 #   sort_index.npy         original row index in sorted order
-#   layer_1.ply ... layer_N.ply   importance buckets (layer_1 = most important)
+#   layer_0.ply ... layer_{N-1}.ply   importance buckets (layer_0 = most important)
 #
 # Run on a CUDA machine with the `dgr_l3gs` rasterizer installed (see
 # gaussian_renderer.count_render for the build command).
@@ -82,7 +82,7 @@ def score_sort_partition(dataset, pipe, iteration, out_dir, n_layers, layer_size
             boundaries = [((k - 1) * layer_size, min(k * layer_size, M))
                           for k in range(1, n_layers + 1)]
 
-        for k, (start, end) in enumerate(boundaries, start=1):
+        for k, (start, end) in enumerate(boundaries):
             if start >= M:
                 print(f"[score] layer {k}: no Gaussians left (start={start} >= M={M}); skipping.")
                 continue

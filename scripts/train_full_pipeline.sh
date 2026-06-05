@@ -73,11 +73,11 @@ for scene in ${SCENES}; do
         echo "[skip] RUN_TRAIN=no — skipping training"
     fi
 
-    # Render + metrics for each produced layer. Layer k trains at resolution
-    # 2^(N - k): k=1 -> coarsest (res8 for N=4), k=N -> res1.
+    # Render + metrics for each produced layer (0-indexed). Layer k trains at
+    # resolution 2^(N - 1 - k): k=0 -> coarsest (res8 for N=4), k=N-1 -> res1.
     if [[ "${RUN_RENDER}" == "yes" || "${RUN_METRICS}" == "yes" ]]; then
-        for ((k = 1; k <= N_LAYERS; k++)); do
-            res=$((2 ** (N_LAYERS - k)))
+        for ((k = 0; k < N_LAYERS; k++)); do
+            res=$((2 ** (N_LAYERS - 1 - k)))
             layer_dir="${MODEL_BASE}/${DATASET}/${scene}/${METHOD}/L${k}_res${res}"
 
             if [[ ! -d "${layer_dir}" ]]; then

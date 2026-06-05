@@ -12,8 +12,9 @@
 #      of exactly layer_size (L3GS mode), or into n_layers near-equal bands
 #      summing to M (equal-split mode when --layer_size is unset). Layer_1 is
 #      always the most important;
-#   4. builds layers coarse->fine: layer k uses bucket k as its trainable splats
-#      on top of a frozen cumulative base, fine-tuned at resolution 2^(n_layers-k).
+#   4. builds layers coarse->fine (0-indexed): layer k uses bucket k as its
+#      trainable splats on top of a frozen cumulative base, fine-tuned at
+#      resolution 2^(n_layers-1-k). k=0 is the coarsest, k=N-1 is the finest.
 #
 # The per-layer regime is LapisGS's: ancestors are frozen except for their
 # opacity (--dynamic_opacity), so layers 1..k-1 keep their positions/colors/
@@ -112,9 +113,11 @@ if __name__ == "__main__":
     run(score_cmd)
 
     # ---- Step 4: build layers coarse -> fine ----
+    # 0-indexed: k=0 -> coarsest (largest downsample, e.g. res8 for N=4);
+    # k=N-1 -> res1 (finest).
     prev_dir = None
-    for k in range(1, N + 1):
-        res = 2 ** (N - k)  # k=1 -> coarsest (largest downsample); k=N -> res1
+    for k in range(N):
+        res = 2 ** (N - 1 - k)
         model_dir = os.path.join(method_dir, f"L{k}_res{res}")
         os.makedirs(model_dir, exist_ok=True)
         band = os.path.join(buckets_dir, f"layer_{k}.ply")
@@ -122,7 +125,7 @@ if __name__ == "__main__":
         cmd = (f"python {train_bin} -s {source_for_res(res)} -m {model_dir} --data_device cuda "
                f"--lambda_dssim {args.lambda_dssim} --iterations {args.layer_iterations} "
                f"--init_gs_path {band} --no_densify{wbg}")
-        if k > 1:
+        if k > 0:
             foundation = os.path.join(prev_dir, "point_cloud",
                                       f"iteration_{args.layer_iterations}", "point_cloud.ply")
             cmd += f" --foundation_gs_path {foundation}"
