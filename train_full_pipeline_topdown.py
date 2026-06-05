@@ -59,6 +59,7 @@ if __name__ == "__main__":
     parser.add_argument('--v_pow', type=float, default=0.1, help="Volume-weighting exponent in importance score")
     parser.add_argument('--lambda_dssim', type=float, default=0.2)
     parser.add_argument('--no_dynamic_opacity', action='store_true', help="Fully freeze ancestor layers (L3GS regime) instead of LapisGS dynamic-opacity ancestors")
+    parser.add_argument('--no_eval', action='store_true', help="Train without the standard train/test split (no test cameras saved into cfg_args)")
     parser.add_argument('-w', '--white_background', action='store_true', help="Pass -w to train/score (NeRF-synthetic scenes)")
     args = parser.parse_args(sys.argv[1:])
 
@@ -69,6 +70,9 @@ if __name__ == "__main__":
     use_prune = args.layer_size is not None and args.layer_size > 0
     target_num = (N * args.layer_size) if use_prune else None
     wbg = " -w" if args.white_background else ""
+    # --eval is what creates the test split (COLMAP llffhold-8 / NeRF-synthetic
+    # transforms_test.json). Without it, render.py finds 0 test cameras.
+    eval_arg = "" if args.no_eval else " --eval"
 
     method_dir = os.path.join(args.model_base, args.dataset_name, args.scene, args.method)
     os.makedirs(method_dir, exist_ok=True)
@@ -80,7 +84,7 @@ if __name__ == "__main__":
     full_dir = os.path.join(method_dir, f"{args.scene}_full_res1")
     os.makedirs(full_dir, exist_ok=True)
     run(f"python {train_bin} -s {source_for_res(1)} -m {full_dir} --data_device cuda "
-        f"--lambda_dssim {args.lambda_dssim} --iterations {args.full_iterations}{wbg}")
+        f"--lambda_dssim {args.lambda_dssim} --iterations {args.full_iterations}{wbg}{eval_arg}")
 
     # ---- Step 2: prune to target_num + recover (only when --layer_size is set) ----
     # L3GS mode: continue fine-tuning, then one-shot prune the bottom fraction by
@@ -96,7 +100,7 @@ if __name__ == "__main__":
             f"--lambda_dssim {args.lambda_dssim} --iterations {args.prune_iterations_total} "
             f"--start_pointcloud {full_pretrain_ply} --target_num {target_num} "
             f"--prune_iterations {args.prune_at} --prune_type {args.prune_type} "
-            f"--v_pow {args.v_pow}{wbg}")
+            f"--v_pow {args.v_pow}{wbg}{eval_arg}")
         score_input_dir = pruned_dir
         score_iteration = args.prune_iterations_total
     else:
@@ -124,7 +128,7 @@ if __name__ == "__main__":
 
         cmd = (f"python {train_bin} -s {source_for_res(res)} -m {model_dir} --data_device cuda "
                f"--lambda_dssim {args.lambda_dssim} --iterations {args.layer_iterations} "
-               f"--init_gs_path {band} --no_densify{wbg}")
+               f"--init_gs_path {band} --no_densify{wbg}{eval_arg}")
         if k > 0:
             foundation = os.path.join(prev_dir, "point_cloud",
                                       f"iteration_{args.layer_iterations}", "point_cloud.ply")

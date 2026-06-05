@@ -35,6 +35,13 @@ LAYER_SIZE="${LAYER_SIZE:-}"
 #   "no"            -> L3GS regime:    ancestors fully frozen (--no_dynamic_opacity)
 DYNAMIC_OPACITY="${DYNAMIC_OPACITY:-yes}"
 
+# EVAL:
+#   "yes" (default) -> use the standard train/test split (--eval), test cameras
+#                      go to test/ and metrics are computed against them.
+#   "no"            -> no eval split (--no_eval); ALL cameras become train, the
+#                      test set will be empty and render/metrics will be no-ops.
+EVAL="${EVAL:-yes}"
+
 # ---- which dataset + which scenes to run ----
 # One dataset per invocation. SCENES is a space-separated list.
 DATASET="${DATASET:-db}"
@@ -55,6 +62,9 @@ if [[ -n "${LAYER_SIZE}" ]]; then
 fi
 if [[ "${DYNAMIC_OPACITY}" == "no" ]]; then
     extra_args+=("--no_dynamic_opacity")
+fi
+if [[ "${EVAL}" == "no" ]]; then
+    extra_args+=("--no_eval")
 fi
 
 for scene in ${SCENES}; do
