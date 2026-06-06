@@ -52,6 +52,13 @@ RUN_TRAIN="${RUN_TRAIN:-yes}"
 RUN_RENDER="${RUN_RENDER:-yes}"
 RUN_METRICS="${RUN_METRICS:-yes}"
 
+# CLEANUP (default "yes"): after metrics are computed for a layer, delete the
+# saved PLY point cloud and the rendered images to save disk. A tiny
+# model_size.json sidecar is written first so plotting (model size on x-axis)
+# still works after cleanup. Only fires when results.json exists for that
+# layer, so partial runs don't delete their own inputs.
+CLEANUP="${CLEANUP:-yes}"
+
 # ---- assemble pipeline extras ----
 extra_args=()
 if [[ "${DATASET}" == "nerf_synthetic" ]]; then
@@ -104,6 +111,13 @@ for scene in ${SCENES}; do
             fi
             if [[ "${RUN_METRICS}" == "yes" ]]; then
                 srun python -u ./metrics.py -m "${layer_dir}"
+            fi
+
+            if [[ "${CLEANUP}" == "yes" && -f "${layer_dir}/results.json" ]]; then
+                echo "--- cleanup ${layer_dir} (PLY + renders) ---"
+                srun python -u ./scripts/record_model_size.py -m "${layer_dir}" || true
+                find "${layer_dir}/point_cloud" -name "point_cloud.ply" -delete 2>/dev/null || true
+                rm -rf "${layer_dir}"/train/ours_* "${layer_dir}"/test/ours_* 2>/dev/null || true
             fi
         done
     fi

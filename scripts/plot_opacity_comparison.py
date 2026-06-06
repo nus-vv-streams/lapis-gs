@@ -125,6 +125,23 @@ def find_point_cloud(layer_dir: Path) -> Path | None:
     return cand if cand.is_file() else None
 
 
+def get_model_size(layer_dir: Path) -> tuple[int | None, int | None, str]:
+    """Return (ply_bytes, n_splats, ply_path_str). Falls back to model_size.json sidecar
+    when the PLY was deleted by cleanup."""
+    ply = find_point_cloud(layer_dir)
+    if ply is not None:
+        return ply.stat().st_size, _read_splat_count(ply), str(ply)
+    sidecar = layer_dir / "model_size.json"
+    if sidecar.is_file():
+        try:
+            with open(sidecar) as f:
+                d = json.load(f)
+            return d.get("ply_bytes"), d.get("n_splats"), d.get("ply_path", "")
+        except (json.JSONDecodeError, OSError):
+            pass
+    return None, None, ""
+
+
 def collect(model_base: Path, dataset: str, scenes: list[str],
             methods: list[str], n_layers: int):
     """Return (flat_rows, curves).
@@ -154,13 +171,12 @@ def collect(model_base: Path, dataset: str, scenes: list[str],
                     continue
 
                 vals = read_metrics(ldir)
-                ply = find_point_cloud(ldir)
-                if ply is not None:
-                    sz = ply.stat().st_size
-                    row["ply_path"] = str(ply)
+                sz, n_splats, ply_path_str = get_model_size(ldir)
+                if sz is not None:
+                    row["ply_path"] = ply_path_str
                     row["ply_bytes"] = sz
                     row["ply_mb"] = sz / (1024 * 1024)
-                    row["n_splats"] = _read_splat_count(ply)
+                    row["n_splats"] = n_splats
 
                 if vals is None:
                     print(f"[warn] empty results.json: {ldir}")
