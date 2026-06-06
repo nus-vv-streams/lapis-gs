@@ -121,4 +121,31 @@ for scene in ${SCENES}; do
             fi
         done
     fi
+
+    # ---- intermediate cleanup: full pretrain + pruned model + buckets ----
+    # These are the scaffolding the top-down pipeline produces on the way to the
+    # L*_res* LODs. Once the finest LOD has results.json (pipeline finished
+    # end-to-end for this scene), they're no longer needed.
+    method_dir="${MODEL_BASE}/${DATASET}/${scene}/${METHOD}"
+    finest_lod_results="${method_dir}/L$((N_LAYERS - 1))_res1/results.json"
+    if [[ "${CLEANUP}" == "yes" && -f "${finest_lod_results}" ]]; then
+        full_pretrain="${method_dir}/${scene}_full_res1"
+        if [[ -d "${full_pretrain}" ]]; then
+            echo "--- cleanup ${full_pretrain} (PLY) ---"
+            find "${full_pretrain}/point_cloud" -name "point_cloud.ply" -delete 2>/dev/null || true
+        fi
+
+        # L3GS mode produces {scene}_pruned_<N>; equal-split mode skips it.
+        for pruned_dir in "${method_dir}/${scene}_pruned_"*; do
+            [[ -d "${pruned_dir}" ]] || continue
+            echo "--- cleanup ${pruned_dir} (PLY) ---"
+            find "${pruned_dir}/point_cloud" -name "point_cloud.ply" -delete 2>/dev/null || true
+        done
+
+        buckets_dir="${method_dir}/buckets"
+        if [[ -d "${buckets_dir}" ]]; then
+            echo "--- cleanup ${buckets_dir} (whole dir) ---"
+            rm -rf "${buckets_dir}"
+        fi
+    fi
 done
