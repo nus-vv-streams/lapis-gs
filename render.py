@@ -34,10 +34,22 @@ def render_set(model_path, name, iteration, views, gaussians, pipeline, backgrou
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(gt, os.path.join(gts_path, '{0:05d}'.format(idx) + ".png"))
 
-def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParams, skip_train : bool, skip_test : bool):
+def render_sets(dataset : ModelParams, iteration : int, pipeline : PipelineParams, skip_train : bool, skip_test : bool, num_gaussians : int = -1):
     with torch.no_grad():
         gaussians = GaussianModel(dataset.sh_degree)
         scene = Scene(dataset, gaussians, load_iteration=iteration, shuffle=False)
+
+        # Top-down LOD: render only the top-N (most important) Gaussians. Valid
+        # on an importance-sorted model where any prefix is a coarser LOD.
+        if num_gaussians is not None and num_gaussians > 0 and num_gaussians < gaussians.get_xyz.shape[0]:
+            n = num_gaussians
+            gaussians._xyz = gaussians._xyz[:n]
+            gaussians._features_dc = gaussians._features_dc[:n]
+            gaussians._features_rest = gaussians._features_rest[:n]
+            gaussians._opacity = gaussians._opacity[:n]
+            gaussians._scaling = gaussians._scaling[:n]
+            gaussians._rotation = gaussians._rotation[:n]
+            print(f"Rendering top {n} Gaussians (LOD truncation)")
 
         bg_color = [1,1,1] if dataset.white_background else [0, 0, 0]
         background = torch.tensor(bg_color, dtype=torch.float32, device="cuda")
@@ -56,6 +68,7 @@ if __name__ == "__main__":
     parser.add_argument("--iteration", default=-1, type=int)
     parser.add_argument("--skip_train", action="store_true")
     parser.add_argument("--skip_test", action="store_true")
+    parser.add_argument("--num_gaussians", default=-1, type=int, help="Render only the top-N Gaussians (LOD truncation of a sorted model).")
     parser.add_argument("--quiet", action="store_true")
     args = get_combined_args(parser)
     print("Rendering " + args.model_path)
@@ -63,4 +76,4 @@ if __name__ == "__main__":
     # Initialize system state (RNG)
     safe_state(args.quiet)
 
-    render_sets(model.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test)
+    render_sets(model.extract(args), args.iteration, pipeline.extract(args), args.skip_train, args.skip_test, args.num_gaussians)

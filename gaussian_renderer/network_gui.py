@@ -14,8 +14,9 @@ import traceback
 import socket
 import json
 from scene.cameras import MiniCam
+from random import randint
 
-host = "127.0.0.1"
+host = f"127.0.0.{randint(0, 255)}"
 port = 6009
 
 conn = None

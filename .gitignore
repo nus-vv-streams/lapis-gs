@@ -1,11 +1,15 @@
 *.pyc
 .vscode
-output
+.claude
+output_log
 build
 diff_rasterization/diff_rast.egg-info
 diff_rasterization/dist
 tensorboard_3d
 screenshots
+# plotting / analysis scripts (kept locally, not part of the release)
+scripts/plot_opacity_comparison.py
+scripts/plot_db_comparisons.py
 
 SIBR_viewers
 .DS_Store

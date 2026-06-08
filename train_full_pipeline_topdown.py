@@ -1,0 +1,142 @@
+#
+# Top-down layered training pipeline (LapisGS regime, L3GS-style construction).
+#
+# Bottom-up LapisGS (train_full_pipeline.py) trains coarsest-first and *adds*
+# fresh Gaussians per finer level. This top-down variant instead:
+#   1. trains ONE full-detail model at res1 (normal 3DGS, densification on);
+#   2. (L3GS mode, only when --layer_size is set) prunes the model to exactly
+#      n_layers*layer_size splats via L3GS-style one-shot importance pruning +
+#      post-prune recovery fine-tune (see prune_finetune.py). Errors out if the
+#      full model has fewer splats than n_layers*layer_size;
+#   3. scores + sorts the model and partitions it: either into n_layers buckets
+#      of exactly layer_size (L3GS mode), or into n_layers near-equal bands
+#      summing to M (equal-split mode when --layer_size is unset). Layer_1 is
+#      always the most important;
+#   4. builds layers coarse->fine (0-indexed): layer k uses bucket k as its
+#      trainable splats on top of a frozen cumulative base, fine-tuned at
+#      resolution 2^(n_layers-1-k). k=0 is the coarsest, k=N-1 is the finest.
+#
+# The per-layer regime is LapisGS's: ancestors are frozen except for their
+# opacity (--dynamic_opacity), so layers 1..k-1 keep their positions/colors/
+# scales/rotations but their opacities adapt as layer k is added. Densification
+# is disabled (--no_densify) so each layer ends with a fixed splat count
+# (layer_size in L3GS mode; the equal-split band size otherwise). Note that
+# because ancestor opacities adapt across levels, the saved per-level
+# checkpoints do NOT form a byte-identical nested prefix; pass
+# --no_dynamic_opacity for strict L3GS-style full-freeze if you need that.
+#
+
+import os
+import sys
+from argparse import ArgumentParser
+
+
+def run(cmd):
+    print("\n+ " + cmd, flush=True)
+    rc = os.system(cmd)
+    if rc != 0:
+        raise SystemExit(f"Command failed (exit {rc}): {cmd}")
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser(description="Top-down layered training pipeline.")
+    parser.add_argument('--model_base', type=str, required=True, help="Path to the model root directory")
+    parser.add_argument('--dataset_base', type=str, required=True, help="Path to the dataset root directory")
+    parser.add_argument('--dataset_name', type=str, required=True, help="Name of the dataset")
+    parser.add_argument('--scene', type=str, required=True, help="Name of the scene")
+    parser.add_argument('--method', type=str, default="lapis_topdown", help="Output method subfolder name")
+    parser.add_argument('--n_layers', type=int, default=4, help="Number of LOD layers (data folders must exist for res 2^(n_layers-k))")
+    parser.add_argument('--layer_size', type=int, default=None,
+                        help="Gaussians per layer (d). If set (>0): L3GS mode — prune to "
+                             "n_layers*layer_size first, then partition into N bands of d. "
+                             "If unset: skip prune entirely and equal-split the full model into N bands.")
+    parser.add_argument('--full_iterations', type=int, default=30000, help="Iterations for the full res1 pretrain")
+    parser.add_argument('--prune_iterations_total', type=int, default=35000, help="Total iterations for the prune+finetune stage (L3GS default: 35000)")
+    parser.add_argument('--prune_at', type=int, default=30001, help="Iteration at which the one-shot prune to target_num happens (L3GS default: 30001)")
+    parser.add_argument('--prune_type', type=str, default="v_important_score",
+                        choices=["important_score", "v_important_score", "max_v_important_score", "count", "opacity"])
+    parser.add_argument('--layer_iterations', type=int, default=30000, help="Iterations for each layer fine-tune")
+    parser.add_argument('--v_pow', type=float, default=0.1, help="Volume-weighting exponent in importance score")
+    parser.add_argument('--lambda_dssim', type=float, default=0.2)
+    parser.add_argument('--no_dynamic_opacity', action='store_true', help="Fully freeze ancestor layers (L3GS regime) instead of LapisGS dynamic-opacity ancestors")
+    parser.add_argument('--no_eval', action='store_true', help="Train without the standard train/test split (no test cameras saved into cfg_args)")
+    parser.add_argument('-w', '--white_background', action='store_true', help="Pass -w to train/score (NeRF-synthetic scenes)")
+    args = parser.parse_args(sys.argv[1:])
+
+    train_bin = "train.py"
+    prune_bin = "prune_finetune.py"
+    score_bin = "score_sort_partition.py"
+    N = args.n_layers
+    use_prune = args.layer_size is not None and args.layer_size > 0
+    target_num = (N * args.layer_size) if use_prune else None
+    wbg = " -w" if args.white_background else ""
+    # --eval is what creates the test split (COLMAP llffhold-8 / NeRF-synthetic
+    # transforms_test.json). Without it, render.py finds 0 test cameras.
+    eval_arg = "" if args.no_eval else " --eval"
+
+    method_dir = os.path.join(args.model_base, args.dataset_name, args.scene, args.method)
+    os.makedirs(method_dir, exist_ok=True)
+
+    def source_for_res(res):
+        return os.path.join(args.dataset_base, args.dataset_name, args.scene, f"{args.scene}_res{res}")
+
+    # ---- Step 1: full-detail pretrain at res1 (densification ON) ----
+    full_dir = os.path.join(method_dir, f"{args.scene}_full_res1")
+    os.makedirs(full_dir, exist_ok=True)
+    run(f"python {train_bin} -s {source_for_res(1)} -m {full_dir} --data_device cuda "
+        f"--lambda_dssim {args.lambda_dssim} --iterations {args.full_iterations}{wbg}{eval_arg}")
+
+    # ---- Step 2: prune to target_num + recover (only when --layer_size is set) ----
+    # L3GS mode: continue fine-tuning, then one-shot prune the bottom fraction by
+    # importance at --prune_at, then recover for the remaining iters. Produces a
+    # model with exactly target_num splats. Skipped entirely when --layer_size is
+    # unset (equal-split mode).
+    full_pretrain_ply = os.path.join(full_dir, "point_cloud",
+                                     f"iteration_{args.full_iterations}", "point_cloud.ply")
+    if use_prune:
+        pruned_dir = os.path.join(method_dir, f"{args.scene}_pruned_{target_num}")
+        os.makedirs(pruned_dir, exist_ok=True)
+        run(f"python {prune_bin} -s {source_for_res(1)} -m {pruned_dir} --data_device cuda "
+            f"--lambda_dssim {args.lambda_dssim} --iterations {args.prune_iterations_total} "
+            f"--start_pointcloud {full_pretrain_ply} --target_num {target_num} "
+            f"--prune_iterations {args.prune_at} --prune_type {args.prune_type} "
+            f"--v_pow {args.v_pow}{wbg}{eval_arg}")
+        score_input_dir = pruned_dir
+        score_iteration = args.prune_iterations_total
+    else:
+        print("\n[pipeline] --layer_size not set: skipping prune+finetune, will equal-split the full model.")
+        score_input_dir = full_dir
+        score_iteration = args.full_iterations
+
+    # ---- Step 3: score + sort + partition into buckets ----
+    buckets_dir = os.path.join(method_dir, "buckets")
+    score_cmd = (f"python {score_bin} -m {score_input_dir} --out_dir {buckets_dir} "
+                 f"--n_layers {N} --iteration {score_iteration} --v_pow {args.v_pow}{wbg}")
+    if use_prune:
+        score_cmd += f" --layer_size {args.layer_size}"
+    run(score_cmd)
+
+    # ---- Step 4: build layers coarse -> fine ----
+    # 0-indexed: k=0 -> coarsest (largest downsample, e.g. res8 for N=4);
+    # k=N-1 -> res1 (finest).
+    prev_dir = None
+    for k in range(N):
+        res = 2 ** (N - 1 - k)
+        model_dir = os.path.join(method_dir, f"L{k}_res{res}")
+        os.makedirs(model_dir, exist_ok=True)
+        band = os.path.join(buckets_dir, f"layer_{k}.ply")
+
+        cmd = (f"python {train_bin} -s {source_for_res(res)} -m {model_dir} --data_device cuda "
+               f"--lambda_dssim {args.lambda_dssim} --iterations {args.layer_iterations} "
+               f"--init_gs_path {band} --no_densify{wbg}{eval_arg}")
+        if k > 0:
+            foundation = os.path.join(prev_dir, "point_cloud",
+                                      f"iteration_{args.layer_iterations}", "point_cloud.ply")
+            cmd += f" --foundation_gs_path {foundation}"
+            if not args.no_dynamic_opacity:
+                cmd += " --dynamic_opacity"
+        run(cmd)
+        prev_dir = model_dir
+
+    print("\nTop-down layered training complete.")
+    print(f"Layer checkpoints under: {method_dir}")

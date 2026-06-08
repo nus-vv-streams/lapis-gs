@@ -31,17 +31,27 @@ except ImportError:
 
 
 
-def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, foundation_gs_path=None, dynamic_opacity=False):
+def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, foundation_gs_path=None, dynamic_opacity=False, init_gs_path=None, no_densify=False):
     first_iter = 0
+    # Top-down regime: disable densification so each layer keeps an exact splat
+    # budget. Setting densify_until_iter=0 skips the whole densify/opacity-reset
+    # block in the loop below.
+    if no_densify:
+        opt.densify_until_iter = 0
     tb_writer = prepare_output_and_logger(dataset)
     gaussians = GaussianModel(dataset.sh_degree)
-    
+
     if foundation_gs_path:
         gaussians.active_sh_degree = gaussians.max_sh_degree
         foundation_gs = GaussianModel(dataset.sh_degree)
         foundation_gs.load_foundation_gs(foundation_gs_path)
-    
+
     scene = Scene(dataset, gaussians)
+    # Top-down init: replace Scene's SfM-initialized trainable Gaussians with a
+    # specific importance-ranked bucket loaded from disk. Must happen before
+    # training_setup so the optimizer wraps the loaded parameters.
+    if init_gs_path:
+        gaussians.load_ply(init_gs_path)
     gaussians.training_setup(opt)
     if checkpoint:
         (model_params, first_iter) = torch.load(checkpoint)
@@ -255,7 +265,8 @@ if __name__ == "__main__":
     lp = ModelParams(parser)
     op = OptimizationParams(parser)
     pp = PipelineParams(parser)
-    parser.add_argument('--ip', type=str, default="127.0.0.1")
+    ip = f"127.0.0.{randint(0, 255)}"
+    parser.add_argument('--ip', type=str, default=ip)
     parser.add_argument('--port', type=int, default=6009)
     parser.add_argument('--debug_from', type=int, default=-1)
     parser.add_argument('--detect_anomaly', action='store_true', default=False)
@@ -266,6 +277,8 @@ if __name__ == "__main__":
     parser.add_argument("--start_checkpoint", type=str, default = None)
     parser.add_argument("--foundation_gs_path", type=str, default = None)
     parser.add_argument("--dynamic_opacity", action="store_true")
+    parser.add_argument("--init_gs_path", type=str, default = None, help="Top-down: PLY for the trainable layer bucket (replaces SfM init).")
+    parser.add_argument("--no_densify", action="store_true", help="Top-down: disable densification to keep an exact splat budget.")
     args = parser.parse_args(sys.argv[1:])
     args.save_iterations.append(args.iterations)
     
@@ -277,7 +290,7 @@ if __name__ == "__main__":
     # Start GUI server, configure and run training
     network_gui.init(args.ip, args.port)
     torch.autograd.set_detect_anomaly(args.detect_anomaly)
-    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from, args.foundation_gs_path, args.dynamic_opacity)
+    training(lp.extract(args), op.extract(args), pp.extract(args), args.test_iterations, args.save_iterations, args.checkpoint_iterations, args.start_checkpoint, args.debug_from, args.foundation_gs_path, args.dynamic_opacity, args.init_gs_path, args.no_densify)
 
     # All done
     print("\nTraining complete.")
