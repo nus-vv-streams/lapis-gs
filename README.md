@@ -52,7 +52,7 @@
 
 ## News
 
-- We updated the codebase to include a new top-down pipeline inspired by [L3GS](https://github.com/mavens-lab/layered_3d_gaussian_splats), which trains a full-resolution model first and then partitions it into equal-size layers. The original bottom-up pipeline is still available as the `lapis` method, while the new top-down pipeline is available as `lapis_topdown`. 
+- We updated the codebase to include a new top-down pipeline inspired by [L3GS](https://github.com/mavens-lab/layered_3d_gaussian_splats), which trains a full-resolution model first and then partitions it into equal-size layers. We also compared the top-down pipeline with the original bottom-up pipeline in below.
 - 🏆 **2025/09**: **Best Paper Award** at ACM SIGCOMM EMS'25. Based on LapisGS, we built a system called NETSPLAT ([Short Paper](https://dl.acm.org/doi/10.1145/3746441.3748225)) that leverages data plane programmability to provide network assistance for 3DGS streaming. It is WiP, but we won the Best Paper Award at ACM SIGCOMM EMS'25...Again!
 - 🏆 **2025/04**: **Best Paper Award** at ACM MMSys'25. We extend LapisGS to dynamic scenes (Dynamic-LapisGS, Check the [Code](https://github.com/nus-vv-streams/dynamic-lapis-gs/)). Based on Dynamic-LapisGS, we built the first ever dynamic 3DGS streaming system named LTS ([Paper](https://doi.org/10.1145/3712676.3714445)), and won the Best Paper Award at ACM MMSys'25!
 
