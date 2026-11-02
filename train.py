@@ -19,6 +19,8 @@ import sys
 from scene import Scene, GaussianModel
 from utils.general_utils import safe_state
 import uuid
+import json
+import time
 from tqdm import tqdm
 from utils.image_utils import psnr
 from argparse import ArgumentParser, Namespace
@@ -33,6 +35,10 @@ except ImportError:
 
 def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoint_iterations, checkpoint, debug_from, foundation_gs_path=None, dynamic_opacity=False, init_gs_path=None, no_densify=False):
     first_iter = 0
+    # Training-cost instrumentation (written to <model_path>/train_stats.json).
+    t_start = time.time()
+    torch.cuda.reset_peak_memory_stats()
+    eval_time_s = 0.0
     # Top-down regime: disable densification so each layer keeps an exact splat
     # budget. Setting densify_until_iter=0 skips the whole densify/opacity-reset
     # block in the loop below.
@@ -80,6 +86,7 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             gaussians.trainable_attributes = []
          
 
+    t_loop_start = time.time()
     for iteration in range(first_iter, opt.iterations + 1):        
         if network_gui.conn == None:
             network_gui.try_connect()
@@ -138,7 +145,10 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
                 progress_bar.close()
 
             # Log and save
+            t_report = time.time()
             training_report(tb_writer, iteration, Ll1, loss, l1_loss, iter_start.elapsed_time(iter_end), testing_iterations, scene, render, (pipe, background))
+            if iteration in testing_iterations:
+                eval_time_s += time.time() - t_report
             if (iteration in saving_iterations):
                 print("\n[ITER {}] Saving Gaussians".format(iteration))
                 # scene.save(iteration)
@@ -169,6 +179,36 @@ def training(dataset, opt, pipe, testing_iterations, saving_iterations, checkpoi
             if (iteration in checkpoint_iterations):
                 print("\n[ITER {}] Saving Checkpoint".format(iteration))
                 torch.save((gaussians.capture(), iteration), scene.model_path + "/chkpnt" + str(iteration) + ".pth")
+
+    torch.cuda.synchronize()
+    t_end = time.time()
+    write_train_stats(scene.model_path, {
+        "iterations": opt.iterations,
+        "wall_time_s": t_end - t_start,                       # setup + loop
+        "setup_time_s": t_loop_start - t_start,               # scene/image loading, init
+        "loop_time_s": t_end - t_loop_start,                  # incl. periodic test eval
+        "eval_time_s": eval_time_s,                           # periodic test eval only
+        "train_time_s": (t_end - t_loop_start) - eval_time_s, # optimisation only
+        "peak_mem_alloc_gb": torch.cuda.max_memory_allocated() / 1024 ** 3,
+        "peak_mem_reserved_gb": torch.cuda.max_memory_reserved() / 1024 ** 3,
+        "n_gaussians": int(gaussians.get_xyz.shape[0]),
+        "n_frozen": int(gaussians.size_fixedGS or 0),
+        "gpu": torch.cuda.get_device_name(),
+        "source_path": dataset.source_path,
+        "foundation_gs_path": foundation_gs_path,
+        "init_gs_path": init_gs_path,
+        "dynamic_opacity": bool(dynamic_opacity),
+        "no_densify": bool(no_densify),
+        "lambda_dssim": opt.lambda_dssim,
+    })
+
+def write_train_stats(model_path, stats):
+    """Training-cost record for the training-order study; survives CLEANUP."""
+    path = os.path.join(model_path, "train_stats.json")
+    with open(path, "w") as f:
+        json.dump(stats, f, indent=2)
+    print(f"[stats] {path}: wall {stats['wall_time_s']:.0f}s, "
+          f"train {stats['train_time_s']:.0f}s, peak {stats['peak_mem_alloc_gb']:.2f} GB")
 
 def gs_merge(foundation_gs, train_gs):
     # 1. foundation GS

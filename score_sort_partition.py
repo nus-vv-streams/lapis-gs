@@ -25,6 +25,8 @@
 #
 
 import os
+import json
+import time
 import numpy as np
 import torch
 from argparse import ArgumentParser
@@ -37,6 +39,8 @@ from prune import prune_list, calculate_v_imp_score, extract_band
 
 def score_sort_partition(dataset, pipe, iteration, out_dir, n_layers, layer_size, v_pow):
     os.makedirs(out_dir, exist_ok=True)
+    t_start = time.time()
+    torch.cuda.reset_peak_memory_stats()
     with torch.no_grad():
         gaussians = GaussianModel(dataset.sh_degree)
         scene = Scene(dataset, gaussians, load_iteration=iteration, shuffle=False)
@@ -92,6 +96,19 @@ def score_sort_partition(dataset, pipe, iteration, out_dir, n_layers, layer_size
             print(f"[score] layer {k}: rows [{start}:{end}) -> {band_path} ({end - start} splats)")
 
         print(f"[score] done. sorted_full + {n_layers} buckets written to {out_dir}")
+
+    # Training-cost record for the training-order study (top-down-only stage).
+    torch.cuda.synchronize()
+    stats = {
+        "wall_time_s": time.time() - t_start,
+        "peak_mem_alloc_gb": torch.cuda.max_memory_allocated() / 1024 ** 3,
+        "peak_mem_reserved_gb": torch.cuda.max_memory_reserved() / 1024 ** 3,
+        "n_gaussians": int(M),
+        "n_layers": n_layers,
+        "gpu": torch.cuda.get_device_name(),
+    }
+    with open(os.path.join(out_dir, "score_stats.json"), "w") as f:
+        json.dump(stats, f, indent=2)
 
 
 if __name__ == "__main__":
