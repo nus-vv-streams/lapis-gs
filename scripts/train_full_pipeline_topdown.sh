@@ -23,20 +23,6 @@ METHOD="${METHOD:-lapis_topdown}"
 
 # ---- training hyperparameters ----
 LAMBDA_DSSIM="${LAMBDA_DSSIM:-0.2}"
-# LAMBDA_DSSIM=auto -> per scene, reuse the value recorded in the cfg_args of a
-# reference run (default: the published bottom-up LapisGS run under
-# <MODEL_BASE>/<dataset>/<scene>/lapis/<scene>_res1/). Used by the training-order
-# study so both orders are trained with the same loss. The scene is skipped
-# (not silently defaulted) if the reference cfg_args can't be read.
-LAMBDA_REF_METHOD="${LAMBDA_REF_METHOD:-lapis}"
-
-resolve_lambda() {   # $1 = scene; prints the lambda to use, or nothing on failure
-    if [[ "${LAMBDA_DSSIM}" != "auto" ]]; then
-        echo "${LAMBDA_DSSIM}"; return
-    fi
-    local cfg="${MODEL_BASE}/${DATASET}/$1/${LAMBDA_REF_METHOD}/$1_res1/cfg_args"
-    grep -o "lambda_dssim=[0-9.]*" "${cfg}" 2>/dev/null | head -1 | cut -d= -f2
-}
 N_LAYERS="${N_LAYERS:-4}"
 
 # --layer_size:
@@ -93,13 +79,6 @@ for scene in ${SCENES}; do
     echo "=== dataset=${DATASET}, scene=${scene} ==="
     echo "=========================================="
 
-    scene_lambda="$(resolve_lambda "${scene}")"
-    if [[ -z "${scene_lambda}" ]]; then
-        echo "[error] LAMBDA_DSSIM=auto but no lambda_dssim in ${MODEL_BASE}/${DATASET}/${scene}/${LAMBDA_REF_METHOD}/${scene}_res1/cfg_args — skipping ${scene}" >&2
-        continue
-    fi
-    echo "[info] lambda_dssim=${scene_lambda} (LAMBDA_DSSIM=${LAMBDA_DSSIM})"
-
     if [[ "${RUN_TRAIN}" == "yes" ]]; then
         srun python -u ./train_full_pipeline_topdown.py \
             --model_base "${MODEL_BASE}" \
@@ -107,7 +86,7 @@ for scene in ${SCENES}; do
             --dataset_name "${DATASET}" \
             --scene "${scene}" \
             --method "${METHOD}" \
-            --lambda_dssim "${scene_lambda}" \
+            --lambda_dssim "${LAMBDA_DSSIM}" \
             --n_layers "${N_LAYERS}" \
             "${extra_args[@]}"
     else
@@ -165,8 +144,9 @@ for scene in ${SCENES}; do
 
         buckets_dir="${method_dir}/buckets"
         if [[ -d "${buckets_dir}" ]]; then
-            echo "--- cleanup ${buckets_dir} (whole dir) ---"
-            rm -rf "${buckets_dir}"
+            # Keep the small *.json records (score_stats.json: scoring-stage cost).
+            echo "--- cleanup ${buckets_dir} (all but *.json) ---"
+            find "${buckets_dir}" -type f ! -name "*.json" -delete
         fi
     fi
 done
